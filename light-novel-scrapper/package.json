@@ -1,0 +1,11 @@
+{
+  "name": "light-novel-scraper",
+  "version": "0.1.0",
+  "private": false,
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "scrape-it": "^5.0.3"
+  }
+}
