@@ -1,7 +1,5 @@
 const scrapeIt = require('scrape-it');
 
-const MAX_PAGES = 143;
-
 async function scrapeNovels(page) {
   return new Promise(resolve => {
     console.log(`Beginning: novels retreive | Page: ${page}`);
