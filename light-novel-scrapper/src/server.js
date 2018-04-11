@@ -1,58 +1,7 @@
 const scrapeIt = require('scrape-it');
 const fs = require('fs');
-
-const MAX_PAGES = 0;
-//const MAX_PAGES = 143;
-let novels = [];
-
-async function scrapeNovels(page) {
-  return new Promise(resolve => {
-    scrapeIt(`https://www.novelupdates.com/novelslisting/?st=1&pg=${page}`, {
-      novels: {
-        listItem: '#myTable tr.bdrank',
-        data: {      
-          name: 'td > a',
-          image: {
-            selector: '.searchpic img',
-            attr: 'src'
-          },
-          url: {
-            selector: '.searchpic > a',
-            attr: 'href'
-          },
-          rating: '.lstrate',
-          country: '.orgalign > span',
-          tags: {
-            listItem: '.gennew'
-          },
-          description: '.noveldesc',
-          releases: '.sfstext'
-        }
-      }
-    }).then(({data, response}) => {
-      console.log(response.statusCode);
-    
-      const newNovels = data.novels.map((novel, index) => {
-        novel.releases = Number.parseInt(novel.releases.slice(10)); // remove 'Releases: '
-        novel.rating = Number.parseFloat(novel.rating.slice(1, -1)); // remove '(' and ')' between rating
-        if (novel.tags.length > 0) {
-          novel.completed = novel.tags[0] === 'Completed';
-          if (novel.completed) {
-            novel.tags = novel.tags.slice(1);
-          }
-        }
-        novel.description = novel.description.replace('... more>>','');
-        novel.description = novel.description.replace('<<less','');
-        novel.description = novel.description.replace(/[^\x00-\xfF]/g, '');
-        return novel;
-      }).filter(novel => novel.releases !== 0);
-  
-      novels = [...novels, ...newNovels];
-
-      resolve();
-    }).catch(console.error);  
-  });
-};
+const scrapeNovels= require('./novels');
+const scrapeChapters = require('./chapters');
 
 function saveToDisk(fileName, content) {
   fs.writeFile(`./data/${fileName}`, JSON.stringify(content), function(err) {
@@ -63,10 +12,12 @@ function saveToDisk(fileName, content) {
   });
 }
 
-async function main() {
+async function scrapeAllNovels() {
   try {
+    let novels = [];
     for (let i = 1; i < MAX_PAGES; i++) {
-      await scrapeNovels(i);
+      const newNovels = await scrapeNovels(i);
+      novels = [...novels, ...newNovels];
     }
     saveToDisk('novels', novels);
   } catch(err) {
@@ -74,35 +25,28 @@ async function main() {
   }
 }
 
-main();
-
-/*
-scrapeIt('https://www.novelupdates.com/series/the-legendary-moonlight-sculptor/?pg=1', {
-  chapters: {
-    listItem: '#myTable tr',
-    data: {
-      name: '.chp-release',
-      url: {
-        selector: '.chp-release',
-        attr: 'href'
-      }  
+async function scrapeAllChapters() {
+  try {
+    let chapters = [];
+    let count = 1;
+    while (count < 10) {
+      const newChapters = await await scrapeChapters('https://www.novelupdates.com/series/the-legendary-moonlight-sculptor/', count + 33);
+      if (newChapters.length === 0 || (chapters.length > 0 && newChapters[newChapters.length - 1].url === chapters[chapters.length - 1].url)) {
+        count = 1000;
+      } else {
+        chapters = [...chapters, ...newChapters];
+        count++;
+      }
     }
+    saveToDisk('chapters', chapters);
+  } catch(err) {
+    console.error(err);
   }
-}).then(({data, response}) => {
-  console.log(response.statusCode);
-  console.log(data);
-});
+}
 
-scrapeIt('https://www.novelupdates.com/extnu/1400792/', {
-  link: {
-    selector: 'link[rel=prev]',
-    attr: 'href'
-  }
-}).then(({data, response}) => {
-  console.log(response.statusCode);
-  console.log(data);
-});
+async function main() {
+  //await scrapeAllNovels();
+  await scrapeAllChapters();
+}
 
-https://www.novelupdates.com/novelslisting/?st=1&pg=1
-https://www.novelupdates.com/series/the-legendary-moonlight-sculptor/?pg=1
-*/
+main();
