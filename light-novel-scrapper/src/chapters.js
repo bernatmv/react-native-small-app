@@ -15,7 +15,7 @@ async function scrapeChapters(url, page) {
           date: {
             selector: 'td',
             closest: 'td',
-            convert: x => new Date(x),
+            convert: x => x ? new Date(x + ' UTC') : null,
             how: 'html'
           },
           publisherName: {
@@ -44,11 +44,19 @@ async function scrapeChapters(url, page) {
                 attr: 'href'
               }
             }).then(({data, response}) => {
-              response.statusCode !== 200 && console.log(response.statusCode);
               //console.log(data, response);//debug only
-              chapter.url = response.fetchedUrls[0];
+              if (response.statusCode !== 200) {
+                console.log(response.statusCode);
+                chapter.url = '';
+              } else {
+                chapter.url = response.fetchedUrls[0];
+              }
               resolve(chapter);
-            }).catch(console.error);
+            }).catch((err) => {
+              console.error(err);
+              chapter.url = '';
+              resolve(chapter);
+            });
           });
         })
       );

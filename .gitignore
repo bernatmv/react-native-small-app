@@ -1,0 +1,9 @@
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/data
+/light-novel-reader/node_modules
+/light-novel-reader/data
+/light-novel-scrapper/node_modules
+/light-novel-scrapper/data
